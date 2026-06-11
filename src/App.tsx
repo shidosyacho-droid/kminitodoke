@@ -11,9 +11,19 @@ import MessageScene from './components/MessageScene'
 
 type Screen = 'title' | 'loading' | 'home' | 'collection'
 
+// 本人プレビュー用：URLに ?preview を付けると全プレゼントを「配信済み」表示にして
+// 中身を確認できる。彼女が使う通常URL／ホーム画面のインストール版(start_url="/")には影響しない。
+const IS_PREVIEW =
+  typeof window !== 'undefined' &&
+  new URLSearchParams(window.location.search).has('preview')
+
 function App() {
   const [screen, setScreen] = useState<Screen>('title')
-  const [matches, setMatches] = useState<MatchMessage[]>(MATCHES)
+  const [matches, setMatches] = useState<MatchMessage[]>(() =>
+    IS_PREVIEW
+      ? MATCHES.map((m) => ({ ...m, state: 'delivered' as const }))
+      : MATCHES,
+  )
   const [selectedId, setSelectedId] = useState<string | null>(null)
   // ワールドカップ終了日時を過ぎていたら、最初から全プレゼントを自動解禁。
   // （DEMOボタンで手動トグルもできる＝終了後の状態をプレビュー用）
