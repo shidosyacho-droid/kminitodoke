@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
-import type { MatchMessage, Reaction } from './types'
+import type { DeliveryState, MatchMessage, Reaction } from './types'
 import { MATCHES } from './data/matches'
 import { WC_END_DATE } from './config'
 import TitleScreen from './components/TitleScreen'
@@ -30,6 +30,23 @@ function App() {
   const [revealSealed, setRevealSealed] = useState(
     () => Date.now() >= WC_END_DATE.getTime(),
   )
+
+  // サーバー(KV)の最新の勝敗状態を取得して反映（本人プレビュー時は固定なのでスキップ）
+  useEffect(() => {
+    if (IS_PREVIEW) return
+    fetch('/api/state')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const states: Record<string, DeliveryState> = data?.states ?? {}
+        if (!states || Object.keys(states).length === 0) return
+        setMatches((prev) =>
+          prev.map((m) => (states[m.id] ? { ...m, state: states[m.id] } : m)),
+        )
+      })
+      .catch(() => {
+        /* APIが無い/失敗時はアプリ内の初期状態のまま */
+      })
+  }, [])
 
   const selected = matches.find((m) => m.id === selectedId) ?? null
 
