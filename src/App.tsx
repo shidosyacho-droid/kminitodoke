@@ -1,0 +1,80 @@
+import { useState } from 'react'
+import './App.css'
+import type { MatchMessage, Reaction } from './types'
+import { MATCHES } from './data/matches'
+import { WC_END_DATE } from './config'
+import TitleScreen from './components/TitleScreen'
+import LoadingScreen from './components/LoadingScreen'
+import Home from './components/Home'
+import Collection from './components/Collection'
+import MessageScene from './components/MessageScene'
+
+type Screen = 'title' | 'loading' | 'home' | 'collection'
+
+function App() {
+  const [screen, setScreen] = useState<Screen>('title')
+  const [matches, setMatches] = useState<MatchMessage[]>(MATCHES)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  // ワールドカップ終了日時を過ぎていたら、最初から全プレゼントを自動解禁。
+  // （DEMOボタンで手動トグルもできる＝終了後の状態をプレビュー用）
+  const [revealSealed, setRevealSealed] = useState(
+    () => Date.now() >= WC_END_DATE.getTime(),
+  )
+
+  const selected = matches.find((m) => m.id === selectedId) ?? null
+
+  const handleReact = (id: string, reaction: Reaction) => {
+    setMatches((prev) => prev.map((m) => (m.id === id ? { ...m, reaction } : m)))
+  }
+
+  let content
+  if (selected) {
+    content = (
+      <MessageScene
+        key={selected.id}
+        match={selected}
+        revealSealed={revealSealed}
+        fromCollection={screen === 'collection'}
+        onClose={() => setSelectedId(null)}
+        onReact={handleReact}
+      />
+    )
+  } else if (screen === 'title') {
+    content = <TitleScreen onStart={() => setScreen('loading')} />
+  } else if (screen === 'loading') {
+    content = <LoadingScreen onDone={() => setScreen('home')} />
+  } else if (screen === 'home') {
+    content = (
+      <Home
+        matches={matches}
+        revealSealed={revealSealed}
+        onOpen={(id) => setSelectedId(id)}
+        onGoCollection={() => setScreen('collection')}
+        onBackToTitle={() => setScreen('title')}
+      />
+    )
+  } else {
+    content = (
+      <Collection
+        matches={matches}
+        revealSealed={revealSealed}
+        onOpen={(id) => setSelectedId(id)}
+        onToggleDemo={() => setRevealSealed((v) => !v)}
+        onBackToTitle={() => setScreen('home')}
+      />
+    )
+  }
+
+  return (
+    <div className="app">
+      <div className="stadium" aria-hidden>
+        <div className="stadium__lights" />
+        <div className="stadium__crowd" />
+      </div>
+      {content}
+      <div className="crt" aria-hidden />
+    </div>
+  )
+}
+
+export default App

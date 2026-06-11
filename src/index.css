@@ -1,0 +1,82 @@
+/* ===========================================================
+   君に届け — グローバル（ドット絵 RPG × サッカー）
+   =========================================================== */
+
+:root {
+  /* フォント */
+  --font-pixel: "DotGothic16", system-ui, "Hiragino Kaku Gothic ProN", monospace;
+  --font-arcade: "Press Start 2P", "DotGothic16", monospace;
+
+  /* ピッチ（芝） */
+  --pitch: #2f8a46;
+  --pitch-dark: #1f6f38;
+  --pitch-deep: #15532a;
+  --line: rgba(255, 255, 255, 0.85);
+
+  /* RPGウィンドウ */
+  --win-bg: #0e1c44;
+  --win-bg2: #16285c;
+  --win-edge: #ffffff;
+  --win-shadow: #05245f;
+
+  /* アクセント */
+  --jp-red: #e0002d;
+  --gold: #ffcf3f;
+  --gold-deep: #c8961a;
+  --blue: #4f8ff7;
+  --rose: #ff6f9d;
+  --cream: #fdf6e3;
+  --ink: #14181f;
+  --muted: #aeb8c9;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-pixel);
+  color: var(--cream);
+  /* スタジアム：上は夜空、下に向かって芝 */
+  background:
+    linear-gradient(180deg, #071a12 0%, #0c2c1a 26%, var(--pitch-deep) 60%, #0a2113 100%);
+  background-attachment: fixed;
+  image-rendering: pixelated;
+  letter-spacing: 0.4px;
+  overscroll-behavior-y: none;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+img,
+video {
+  display: block;
+  max-width: 100%;
+  image-rendering: pixelated;
+}
+
+::selection {
+  background: var(--gold);
+  color: var(--ink);
+}

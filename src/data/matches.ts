@@ -1,0 +1,156 @@
+import type { MatchMessage } from '../types'
+
+/**
+ * 優勝までの全8試合ぶんのメッセージ枠（モックデータ）。
+ * Phase 1 では state を手で設定して各画面の見え方を確認する。
+ * 本番では裏方（API）が勝敗を判定して state を更新し、
+ * text / imageUrl / videoUrl は志道様が管理画面から仕込む。
+ *
+ * ※ 下の text はトーンを見せるための仮メッセージ。志道様が後で差し替え。
+ */
+export const MATCHES: MatchMessage[] = [
+  {
+    id: 'gs1',
+    order: 1,
+    stage: 'group',
+    label: 'グループステージ 第1戦',
+    opponent: 'オランダ',
+    flag: '🇳🇱',
+    kickoff: '6/15(月) 朝5:00',
+    title: '秒速5センチメートル',
+    state: 'upcoming',
+    text:
+      '実はこの日の半年前から、\n1回くらいデートに行きたいと思ってました。',
+    imageUrl: '/scenes/sakura.png',
+    videoUrl: '/scenes/sakura.mp4',
+    reaction: { hearted: false, sticker: null },
+  },
+  {
+    id: 'gs2',
+    order: 2,
+    stage: 'group',
+    label: 'グループステージ 第2戦',
+    opponent: 'チュニジア',
+    flag: '🇹🇳',
+    kickoff: '6/21(日) 13:00',
+    title: 'Jellyfish',
+    state: 'upcoming',
+    text:
+      '海の月と書いてクラゲと読む。\n大地の星と書いてひなたと読む。',
+    imageUrl: null,
+    videoUrl: '/scenes/aquarium.mp4',
+    reaction: { hearted: false, sticker: null },
+  },
+  {
+    id: 'gs3',
+    order: 3,
+    stage: 'group',
+    label: 'グループステージ 第3戦',
+    opponent: 'スウェーデン',
+    flag: '🇸🇪',
+    kickoff: '6/26(金) 朝8:00',
+    title: '海がきこえる',
+    state: 'upcoming',
+    text:
+      'ここもう１回行きたいです。\n君と。',
+    imageUrl: null,
+    videoUrl: '/scenes/atami.mp4',
+    reaction: { hearted: false, sticker: null },
+  },
+  {
+    id: 'r32',
+    order: 4,
+    stage: 'r32',
+    label: 'ラウンド32',
+    opponent: '未定',
+    flag: '🏆',
+    kickoff: '6/28〜7/3 頃',
+    title: '愛情イッキ',
+    state: 'upcoming',
+    text:
+      '夏合宿でもやりましょう。',
+    imageUrl: null,
+    videoUrl: '/scenes/bbq.mp4',
+    reaction: { hearted: false, sticker: null },
+  },
+  {
+    id: 'r16',
+    order: 5,
+    stage: 'r16',
+    label: 'ラウンド16',
+    opponent: '未定',
+    flag: '🏆',
+    kickoff: '7/4〜7/7 頃',
+    title: 'この気持ちは10割',
+    state: 'upcoming',
+    text:
+      '俺が面白いと思うものを、\nいつも一緒に見てくれてありがとう。',
+    imageUrl: null,
+    videoUrl: '/scenes/home.mp4',
+    reaction: { hearted: false, sticker: null },
+  },
+  {
+    id: 'qf',
+    order: 6,
+    stage: 'qf',
+    label: '準々決勝',
+    opponent: '未定',
+    flag: '🏆',
+    kickoff: '7/9〜7/11 頃',
+    title: '一歩踏み出せば、未来は変わる',
+    state: 'upcoming',
+    text:
+      '誰だって未知の世界へ踏み込む時は怖い。\nしかし、勇気を持って前進した者のみが未来を掴む。',
+    imageUrl: null,
+    videoUrl: '/scenes/park1.mp4',
+    reaction: { hearted: false, sticker: null },
+  },
+  {
+    id: 'sf',
+    order: 7,
+    stage: 'sf',
+    label: '準決勝',
+    opponent: '未定',
+    flag: '🏆',
+    kickoff: '7/14〜7/15 頃',
+    title: 'いつものとこ',
+    state: 'upcoming',
+    text:
+      'トリキを教えてくれて、ありがとう。',
+    imageUrl: null,
+    videoUrl: '/scenes/izakaya.mp4',
+    reaction: { hearted: false, sticker: null },
+  },
+  {
+    id: 'final',
+    order: 8,
+    stage: 'final',
+    label: '決勝',
+    opponent: '未定',
+    flag: '🏆',
+    kickoff: '7/19(日)',
+    title: '寒さ<楽しさ',
+    state: 'upcoming',
+    text:
+      '正直、運転が下手過ぎて怖かったです。\nでもまぁ、楽しかったです。',
+    imageUrl: null,
+    videoUrl: '/scenes/park2.mp4',
+    reaction: { hearted: false, sticker: null },
+  },
+  {
+    id: 'champion',
+    order: 9,
+    stage: 'champion',
+    label: '優勝・特別プレゼント',
+    opponent: '—',
+    flag: '🏆',
+    kickoff: '—',
+    title: "What's next!?",
+    state: 'upcoming',
+    text:
+      'ワールドカップが終わっても、\n2人のコレクションを集めていきましょう。',
+    imageUrl: null,
+    videoUrl: '/scenes/hawaii.mp4',
+    reaction: { hearted: false, sticker: null },
+  },
+]
