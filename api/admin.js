@@ -43,6 +43,7 @@ export default async function handler(req, res) {
       jp: jpN,
       opp: oppN,
       ...(opponent ? { opponent: String(opponent) } : {}),
+      manual: true, // 手動設定 → 自動取得(poll)は上書きしない
     }
     await setResults(results)
 
