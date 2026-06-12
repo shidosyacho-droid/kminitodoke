@@ -4,6 +4,7 @@ import { APP_NAME, RECIPIENT } from '../config'
 import { effectiveState, isOpenable } from '../lib/state'
 import { playClick } from '../lib/sfx'
 import { Sprite, flagSprite } from './Sprite'
+import NotifyButton from './NotifyButton'
 
 type Props = {
   matches: MatchMessage[]
@@ -100,6 +101,8 @@ export default function Home({
         {RECIPIENT}へ。<br />
         日本代表の試合日程です。勝つとプレゼントが届きます！
       </p>
+
+      <NotifyButton />
 
       {nextMatch && (
         <div className="next-hero">

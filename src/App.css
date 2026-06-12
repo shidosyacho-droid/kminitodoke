@@ -1029,6 +1029,37 @@
   color: var(--gold);
 }
 
+/* 通知オンのボタン／状態表示 */
+.notify {
+  display: block;
+  width: 100%;
+  margin: 4px 0 10px;
+  padding: 11px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  border-radius: 8px;
+  border: 2px solid var(--rose, #e0567a);
+  background: rgba(224, 86, 122, 0.16);
+  color: #ffd7e2;
+  cursor: pointer;
+}
+.notify:disabled { opacity: 0.6; }
+.notify--on {
+  border-color: #2e7d4f;
+  background: rgba(46, 125, 79, 0.18);
+  color: #c8f0d6;
+  cursor: default;
+}
+.notify--off {
+  border-color: #6b7280;
+  background: rgba(107, 114, 128, 0.16);
+  color: #cfd4dd;
+  font-weight: 400;
+  font-size: 12px;
+  cursor: default;
+}
+
 .home-cta {
   width: 100%;
   margin-top: 24px;
