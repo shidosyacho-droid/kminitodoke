@@ -73,6 +73,21 @@ export default async function handler(req, res) {
     return
   }
 
+  // 出場国リスト（対応表づくり用の検証）
+  if (req.query.teams) {
+    const token = process.env.FOOTBALL_API_TOKEN
+    const r = await fetch(`${FD}/competitions/WC/teams`, {
+      headers: { 'X-Auth-Token': token },
+    })
+    const d = await r.json().catch(() => ({}))
+    res.setHeader('Cache-Control', 'no-store')
+    res.status(200).json({
+      count: d.teams?.length,
+      teams: (d.teams || []).map((t) => ({ name: t.name, tla: t.tla })),
+    })
+    return
+  }
+
   const data = await fetchJapanMatches()
   if (data.error) {
     res.status(200).json(data)
