@@ -1,0 +1,25 @@
+name: poll-japan-results
+
+# 日本戦の時間帯だけ /api/poll を叩いて、終了した試合のスコアを自動反映する。
+# cron は UTC。無料枠を食わないよう、試合の窓だけに絞っている。
+# 決勝トーナメントの日程が決まったら、その窓をここに追記する。
+on:
+  schedule:
+    # 第1戦 vs オランダ（6/15 5:00 JST = 6/14 20:00 UTC）→ 20:00-23:50 UTC で10分おき
+    - cron: '*/10 20-23 14 6 *'
+    # 第2戦 vs チュニジア（6/21 13:00 JST = 6/21 04:00 UTC）→ 04:00-07:50 UTC
+    - cron: '*/10 4-7 21 6 *'
+    # 第3戦 vs スウェーデン（6/26 8:00 JST = 6/25 23:00 UTC）→ 前半 23:xx / 後半 0-2:xx
+    - cron: '*/10 23 25 6 *'
+    - cron: '*/10 0-2 26 6 *'
+  workflow_dispatch: {} # 手動でも実行できる（テスト用）
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call /api/poll
+        env:
+          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
+        run: |
+          curl -s -m 30 "https://kminitodoke.vercel.app/api/poll?key=${ADMIN_SECRET}" -w '\n[%{http_code}]\n' || true
