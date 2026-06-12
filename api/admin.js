@@ -1,41 +1,55 @@
-// /api/admin?key=SECRET&match=gs1&result=win — 志道さん専用の勝敗フリップ
-//   result: win=配信(delivered) / loss・draw=封印(sealed) / reset=未定に戻す
-// win のときは購読者にプッシュ通知を送る。
-import { getStates, setStates, sendPushToAll } from './_lib.js'
-
-const RESULT_MAP = {
-  win: 'delivered',
-  loss: 'sealed',
-  draw: 'sealed',
-  reset: null,
-}
+// /api/admin — 志道さん専用：スコアを手動で入れる（自動が外した時のフォールバック）
+//   解禁/封印はスコアから自動判定（jp>opp = 勝ち = 解禁）。勝ちのときは通知も送る。
+//
+//   例（勝ち）: /api/admin?key=SECRET&match=gs1&jp=2&opp=1
+//   例（KO・相手も指定）: /api/admin?key=SECRET&match=r32&jp=1&opp=0&opponent=スペイン
+//   例（リセット）: /api/admin?key=SECRET&match=gs1&reset=1
+import { getResults, setResults, sendPushToAll } from './_lib.js'
 
 export default async function handler(req, res) {
-  const { key, match, result } = req.query
+  const { key, match, jp, opp, opponent, reset } = req.query
 
   if (!process.env.ADMIN_SECRET || key !== process.env.ADMIN_SECRET) {
     res.status(401).json({ error: 'unauthorized' })
     return
   }
-  if (!match || !(result in RESULT_MAP)) {
-    res
-      .status(400)
-      .json({ error: 'match と result(win|loss|draw|reset) を指定してください' })
+  if (!match) {
+    res.status(400).json({ error: 'match を指定してください' })
     return
   }
 
   try {
-    const states = await getStates()
-    const newState = RESULT_MAP[result]
-    if (newState === null) {
-      delete states[match]
-    } else {
-      states[match] = newState
-    }
-    await setStates(states)
+    const results = await getResults()
 
+    if (reset) {
+      delete results[match]
+      await setResults(results)
+      res.status(200).json({ ok: true, match, state: 'upcoming' })
+      return
+    }
+
+    const jpN = Number(jp)
+    const oppN = Number(opp)
+    if (!Number.isFinite(jpN) || !Number.isFinite(oppN)) {
+      res
+        .status(400)
+        .json({ error: 'jp と opp（スコア）を数字で指定してください' })
+      return
+    }
+
+    const prev = results[match]
+    const wasWin = prev && prev.jp > prev.opp
+    results[match] = {
+      jp: jpN,
+      opp: oppN,
+      ...(opponent ? { opponent: String(opponent) } : {}),
+    }
+    await setResults(results)
+
+    const won = jpN > oppN
     let push = null
-    if (result === 'win') {
+    // 新たに「勝ち」になった時だけ通知（同じ勝ちの再送はしない）
+    if (won && !wasWin) {
       push = await sendPushToAll({
         title: '⚽ 日本、勝利！',
         body: '君に新しいプレゼントが届いたよ🎁',
@@ -43,9 +57,13 @@ export default async function handler(req, res) {
       })
     }
 
-    res
-      .status(200)
-      .json({ ok: true, match, state: newState ?? 'upcoming', push })
+    res.status(200).json({
+      ok: true,
+      match,
+      score: `${jpN}-${oppN}`,
+      state: won ? 'delivered' : 'sealed',
+      push,
+    })
   } catch (e) {
     res.status(500).json({ error: String(e) })
   }

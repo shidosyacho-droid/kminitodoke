@@ -47,9 +47,7 @@ export default function Home({
             </span>
           </div>
           <div className="srow__kick">🕑 {m.kickoff}</div>
-          {st === 'delivered' && m.result && (
-            <div className="srow__result">{m.result}</div>
-          )}
+          {m.result && <div className="srow__result">{m.result}</div>}
           {m.title && (
             <div className={`srow__title ${openable ? '' : 'srow__title--locked'}`}>
               📜「{m.title}」

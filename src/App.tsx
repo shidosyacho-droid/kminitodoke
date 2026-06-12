@@ -31,16 +31,31 @@ function App() {
     () => Date.now() >= WC_END_DATE.getTime(),
   )
 
-  // サーバー(KV)の最新の勝敗状態を取得して反映（本人プレビュー時は固定なのでスキップ）
+  // サーバー(KV)の最新スコアを取得して反映（本人プレビュー時は固定なのでスキップ）
+  // 形: { gs1: { jp, opp, opponent? } } → 勝ち(jp>opp)=配信 / それ以外=封印、表示は「日本 2-1 オランダ」
   useEffect(() => {
     if (IS_PREVIEW) return
     fetch('/api/state')
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        const states: Record<string, DeliveryState> = data?.states ?? {}
-        if (!states || Object.keys(states).length === 0) return
+        const results: Record<
+          string,
+          { jp: number; opp: number; opponent?: string }
+        > = data?.results ?? {}
+        if (!results || Object.keys(results).length === 0) return
         setMatches((prev) =>
-          prev.map((m) => (states[m.id] ? { ...m, state: states[m.id] } : m)),
+          prev.map((m) => {
+            const r = results[m.id]
+            if (!r) return m
+            const opponent = r.opponent ?? m.opponent
+            const won = r.jp > r.opp
+            return {
+              ...m,
+              opponent,
+              state: (won ? 'delivered' : 'sealed') as DeliveryState,
+              result: `日本 ${r.jp}-${r.opp} ${opponent}`,
+            }
+          }),
         )
       })
       .catch(() => {

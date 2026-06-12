@@ -20,9 +20,13 @@ export async function kv(command) {
   return data.result
 }
 
-/** 試合の状態（{ gs1: 'delivered', ... }）を取得 */
-export async function getStates() {
-  const raw = await kv(['GET', 'matchStates'])
+/**
+ * 試合結果（スコア）を取得。
+ * 形： { gs1: { jp: 2, opp: 1, opponent: 'オランダ' }, ... }
+ * 勝敗（解禁/封印）は jp>opp かどうかで判定する。
+ */
+export async function getResults() {
+  const raw = await kv(['GET', 'results'])
   if (!raw) return {}
   try {
     return typeof raw === 'string' ? JSON.parse(raw) : raw
@@ -31,8 +35,8 @@ export async function getStates() {
   }
 }
 
-export async function setStates(states) {
-  await kv(['SET', 'matchStates', JSON.stringify(states)])
+export async function setResults(results) {
+  await kv(['SET', 'results', JSON.stringify(results)])
 }
 
 /** プッシュ通知の購読を取得 */
