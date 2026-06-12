@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>君に届け — 管理</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; padding: 16px; max-width: 560px; margin-inline: auto;
+        background: #0e0a18; color: #f3ece0;
+        font-family: "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+      }
+      h1 { font-size: 18px; margin: 4px 0 2px; }
+      .sub { font-size: 12px; color: #9aa3b5; margin: 0 0 16px; }
+      .card { background: #1a1530; border: 1px solid #2c2747; border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+      label { display: block; font-size: 12px; color: #9aa3b5; margin-bottom: 4px; }
+      input {
+        width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid #3a3460;
+        background: #120e22; color: #fff; font-size: 16px;
+      }
+      .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+      .row .name { flex: 0 0 96px; font-weight: 700; font-size: 14px; }
+      .score { width: 56px; text-align: center; }
+      .opp { flex: 1; min-width: 90px; }
+      button {
+        padding: 9px 12px; border-radius: 8px; border: 0; font-size: 14px; font-weight: 700;
+        cursor: pointer;
+      }
+      .win { background: #1f6334; color: #fff; }
+      .reset { background: #3a3460; color: #cfc9e6; }
+      .save-key { background: #ffcf6a; color: #2a2208; }
+      .state { font-size: 12px; color: #ffcf6a; margin-top: 6px; min-height: 16px; }
+      .matchcard { margin-bottom: 10px; }
+      .matchcard .meta { font-size: 11px; color: #8a93a8; margin: 2px 0 8px; }
+      #log { font-size: 12px; white-space: pre-wrap; color: #9aa3b5; margin-top: 8px; }
+      .hint { font-size: 11px; color: #777f93; }
+    </style>
+  </head>
+  <body>
+    <h1>君に届け — 管理（志道さん専用）</h1>
+    <p class="sub">勝った試合のスコアを入れて「勝敗を確定」。勝ちなら自動で解禁＋通知。<br />※ 自動取得が間違えた時の手動の保険。</p>
+
+    <div class="card">
+      <label>管理キー（ADMIN_SECRET）— 最初の1回だけ入れれば端末に保存されます</label>
+      <div class="row">
+        <input id="key" class="opp" type="password" placeholder="ADMIN_SECRET を貼り付け" />
+        <button class="save-key" onclick="saveKey()">保存</button>
+      </div>
+      <div class="hint" id="keystate"></div>
+    </div>
+
+    <div class="row" style="margin-bottom:12px">
+      <button class="reset" onclick="loadState()">🔄 現在の状態を取得</button>
+    </div>
+
+    <div id="matches"></div>
+
+    <div id="log"></div>
+
+    <script>
+      const MATCHES = [
+        { id: 'gs1', name: 'GS 第1戦', opp: 'オランダ', fixed: true },
+        { id: 'gs2', name: 'GS 第2戦', opp: 'チュニジア', fixed: true },
+        { id: 'gs3', name: 'GS 第3戦', opp: 'スウェーデン', fixed: true },
+        { id: 'r32', name: 'ラウンド32', opp: '', fixed: false },
+        { id: 'r16', name: 'ラウンド16', opp: '', fixed: false },
+        { id: 'qf', name: '準々決勝', opp: '', fixed: false },
+        { id: 'sf', name: '準決勝', opp: '', fixed: false },
+        { id: 'final', name: '決勝', opp: '', fixed: false },
+      ]
+
+      function getKey() { return localStorage.getItem('kimi_admin_key') || '' }
+      function saveKey() {
+        const v = document.getElementById('key').value.trim()
+        if (v) localStorage.setItem('kimi_admin_key', v)
+        renderKeyState()
+        log(v ? '管理キーを保存しました' : 'キーが空です')
+      }
+      function renderKeyState() {
+        const k = getKey()
+        document.getElementById('keystate').textContent = k
+          ? '✓ キー保存ずみ（この端末）'
+          : 'キー未設定'
+        if (k) document.getElementById('key').value = ''
+      }
+      function log(msg) {
+        document.getElementById('log').textContent =
+          new Date().toLocaleTimeString() + '  ' + msg
+      }
+
+      function render() {
+        const wrap = document.getElementById('matches')
+        wrap.innerHTML = ''
+        for (const m of MATCHES) {
+          const c = document.createElement('div')
+          c.className = 'card matchcard'
+          c.innerHTML = `
+            <div class="row">
+              <span class="name">${m.name}</span>
+              <span>日本</span>
+              <input class="score" id="jp_${m.id}" type="number" inputmode="numeric" placeholder="-" />
+              <span>-</span>
+              <input class="score" id="opp_${m.id}" type="number" inputmode="numeric" placeholder="-" />
+              <input class="opp" id="name_${m.id}" type="text" placeholder="相手" value="${m.opp}" />
+            </div>
+            <div class="meta">id: ${m.id}</div>
+            <div class="row">
+              <button class="win" onclick="flip('${m.id}')">勝敗を確定</button>
+              <button class="reset" onclick="resetMatch('${m.id}')">リセット</button>
+              <span class="state" id="state_${m.id}"></span>
+            </div>`
+          wrap.appendChild(c)
+        }
+      }
+
+      async function flip(id) {
+        const key = getKey()
+        if (!key) return log('先に管理キーを保存してください')
+        const jp = document.getElementById('jp_' + id).value
+        const opp = document.getElementById('opp_' + id).value
+        const opponent = document.getElementById('name_' + id).value.trim()
+        if (jp === '' || opp === '') return log('スコアを入れてください（日本 ○-○）')
+        const q = new URLSearchParams({ key, match: id, jp, opp })
+        if (opponent) q.set('opponent', opponent)
+        try {
+          const r = await fetch('/api/admin?' + q.toString())
+          const d = await r.json()
+          if (!r.ok) { log('エラー: ' + (d.error || r.status)); return }
+          const s = d.state === 'delivered' ? '解禁🎁（勝ち）' : '封印🔒（負け/分け）'
+          document.getElementById('state_' + id).textContent =
+            `${d.score} → ${s}` + (d.push ? `／通知 ${d.push.sent ?? 0}件` : '')
+          log(`${id}: ${d.score} 確定`)
+        } catch (e) { log('通信エラー: ' + e) }
+      }
+
+      async function resetMatch(id) {
+        const key = getKey()
+        if (!key) return log('先に管理キーを保存してください')
+        try {
+          const r = await fetch('/api/admin?' + new URLSearchParams({ key, match: id, reset: '1' }))
+          const d = await r.json()
+          if (!r.ok) { log('エラー: ' + (d.error || r.status)); return }
+          document.getElementById('state_' + id).textContent = '未定に戻した'
+          document.getElementById('jp_' + id).value = ''
+          document.getElementById('opp_' + id).value = ''
+          log(`${id}: リセット`)
+        } catch (e) { log('通信エラー: ' + e) }
+      }
+
+      async function loadState() {
+        try {
+          const r = await fetch('/api/state')
+          const d = await r.json()
+          const results = d.results || {}
+          for (const m of MATCHES) {
+            const el = document.getElementById('state_' + m.id)
+            const r2 = results[m.id]
+            if (r2) {
+              const won = r2.jp > r2.opp
+              document.getElementById('jp_' + m.id).value = r2.jp
+              document.getElementById('opp_' + m.id).value = r2.opp
+              if (r2.opponent) document.getElementById('name_' + m.id).value = r2.opponent
+              el.textContent = `日本 ${r2.jp}-${r2.opp} → ` + (won ? '解禁🎁' : '封印🔒')
+            } else {
+              el.textContent = '未定'
+            }
+          }
+          log('現在の状態を取得しました')
+        } catch (e) { log('通信エラー: ' + e) }
+      }
+
+      render()
+      renderKeyState()
+      loadState()
+    </script>
+  </body>
+</html>
