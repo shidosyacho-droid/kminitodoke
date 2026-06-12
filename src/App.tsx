@@ -43,6 +43,8 @@ function App() {
           {
             jp?: number
             opp?: number
+            won?: boolean
+            pk?: { jp: number; opp: number }
             opponent?: string
             flag?: string
             kickoff?: string
@@ -58,11 +60,12 @@ function App() {
             if (r.opponent) merged.opponent = r.opponent
             if (r.flag) merged.flag = r.flag
             if (r.kickoff) merged.kickoff = r.kickoff
-            // スコアが入っていれば勝敗確定（勝ち=解禁／それ以外=封印）
+            // スコアが入っていれば勝敗確定（勝敗は won＝PK込みの正しい判定）
             if (r.jp != null && r.opp != null) {
-              const won = r.jp > r.opp
+              const won = r.won ?? r.jp > r.opp
               merged.state = (won ? 'delivered' : 'sealed') as DeliveryState
-              merged.result = `日本 ${r.jp}-${r.opp} ${merged.opponent}`
+              const pk = r.pk ? `（PK ${r.pk.jp}-${r.pk.opp}）` : ''
+              merged.result = `日本 ${r.jp}-${r.opp}${pk} ${merged.opponent}`
             }
             return merged
           }),
@@ -73,10 +76,32 @@ function App() {
       })
   }, [])
 
+  // 端末に保存したリアクション（ハート/スタンプ）を復元
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('kimi_reactions') || '{}')
+      if (saved && Object.keys(saved).length) {
+        setMatches((prev) =>
+          prev.map((m) => (saved[m.id] ? { ...m, reaction: saved[m.id] } : m)),
+        )
+      }
+    } catch {
+      /* 壊れていたら無視 */
+    }
+  }, [])
+
   const selected = matches.find((m) => m.id === selectedId) ?? null
 
   const handleReact = (id: string, reaction: Reaction) => {
     setMatches((prev) => prev.map((m) => (m.id === id ? { ...m, reaction } : m)))
+    // 端末に保存（リロード/再起動でも残る）
+    try {
+      const saved = JSON.parse(localStorage.getItem('kimi_reactions') || '{}')
+      saved[id] = reaction
+      localStorage.setItem('kimi_reactions', JSON.stringify(saved))
+    } catch {
+      /* 保存できなくても操作は成立 */
+    }
   }
 
   let content

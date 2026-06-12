@@ -196,18 +196,31 @@ export default async function handler(req, res) {
     const info = oppInfo(m)
 
     if (m.status === 'FINISHED') {
-      // ① スコア反映
+      // ① スコア反映。勝敗は score.winner で判定（PK戦も正しく勝ち扱い）
       const ft = m.score?.fullTime
       if (!ft || ft.home == null || ft.away == null) continue
-      const jp = isJapan(m.homeTeam) ? ft.home : ft.away
-      const opp = isJapan(m.homeTeam) ? ft.away : ft.home
+      const japanHome = isJapan(m.homeTeam)
+      const jp = japanHome ? ft.home : ft.away
+      const opp = japanHome ? ft.away : ft.home
+      const won = m.score?.winner === (japanHome ? 'HOME_TEAM' : 'AWAY_TEAM')
+      // PK戦ならPKスコアも保持（表示用）
+      let pk = null
+      const pens = m.score?.penalties
+      if (
+        m.score?.duration === 'PENALTY_SHOOTOUT' &&
+        pens &&
+        pens.home != null &&
+        pens.away != null
+      ) {
+        pk = { jp: japanHome ? pens.home : pens.away, opp: japanHome ? pens.away : pens.home }
+      }
       const prev = results[id]
-      if (prev && prev.jp === jp && prev.opp === opp) continue
-      const wasWin = prev && prev.jp > prev.opp
-      results[id] = { jp, opp, opponent: info.ja, flag: info.flag }
+      if (prev && prev.jp === jp && prev.opp === opp && prev.won === won) continue
+      const wasWin = prev && prev.won
+      results[id] = { jp, opp, opponent: info.ja, flag: info.flag, won, ...(pk ? { pk } : {}) }
       changed = true
-      updated.push({ id, score: `${jp}-${opp}` })
-      if (jp > opp && !wasWin) {
+      updated.push({ id, score: `${jp}-${opp}`, won })
+      if (won && !wasWin) {
         const p = await notifyWin()
         pushed += p.sent || 0
       }

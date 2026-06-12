@@ -56,16 +56,19 @@ export default async function handler(req, res) {
     }
 
     const prev = results[match]
-    const wasWin = prev && prev.jp > prev.opp
+    const wasWin = prev && prev.won
+    // 基本はスコアで勝敗。PK勝ち等で引き分けスコアでも勝ち扱いにしたい時は &won=1
+    const won =
+      req.query.won === '1' || req.query.won === 'true' ? true : jpN > oppN
     results[match] = {
       jp: jpN,
       opp: oppN,
+      won,
       ...(opponent ? { opponent: String(opponent) } : {}),
       manual: true, // 手動設定 → 自動取得(poll)は上書きしない
     }
     await setResults(results)
 
-    const won = jpN > oppN
     let push = null
     // 新たに「勝ち」になった時だけ通知（同じ勝ちの再送はしない）
     if (won && !wasWin) {
