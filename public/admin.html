@@ -106,7 +106,7 @@
               <input class="score" id="opp_${m.id}" type="number" inputmode="numeric" placeholder="-" />
               <input class="opp" id="name_${m.id}" type="text" placeholder="相手" value="${m.opp}" />
             </div>
-            <div class="meta">id: ${m.id}</div>
+            <div class="meta">id: ${m.id}　<label style="color:#cfc9e6"><input type="checkbox" id="pk_${m.id}" /> PK勝ち（引分スコアでも勝ち扱い）</label></div>
             <div class="row">
               <button class="win" onclick="flip('${m.id}')">勝敗を確定</button>
               <button class="reset" onclick="resetMatch('${m.id}')">リセット</button>
@@ -125,6 +125,7 @@
         if (jp === '' || opp === '') return log('スコアを入れてください（日本 ○-○）')
         const q = new URLSearchParams({ key, match: id, jp, opp })
         if (opponent) q.set('opponent', opponent)
+        if (document.getElementById('pk_' + id).checked) q.set('won', '1')
         try {
           const r = await fetch('/api/admin?' + q.toString())
           const d = await r.json()
