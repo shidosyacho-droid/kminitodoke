@@ -86,3 +86,12 @@ export async function sendPushToAll(payload) {
   )
   return { sent, total: subs.length }
 }
+
+/** 「勝利→プレゼント」通知。彼女(ひなた様)への文面はここで一元管理する。 */
+export async function notifyWin() {
+  return sendPushToAll({
+    title: 'ひなた様、日本が勝利しました。',
+    body: '志道様からプレゼントが届いております。',
+    url: '/',
+  })
+}

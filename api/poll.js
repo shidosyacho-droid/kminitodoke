@@ -1,7 +1,7 @@
 // /api/poll — 自動取得（cronから叩く）。football-data.org から日本のWC試合の
 // スコアを取得し、終了した試合を KV に反映（勝ちは解禁＋通知）。
 // 手動で入れた結果（manual:true）は上書きしない＝自動が間違えた時の補正を守る。
-import { getResults, setResults, sendPushToAll } from './_lib.js'
+import { getResults, setResults, notifyWin } from './_lib.js'
 
 const FD = 'https://api.football-data.org/v4'
 
@@ -100,11 +100,7 @@ export default async function handler(req, res) {
     updated.push({ id, score: `${jp}-${opp}` })
 
     if (jp > opp && !wasWin) {
-      const p = await sendPushToAll({
-        title: '⚽ 日本、勝利！',
-        body: '君に新しいプレゼントが届いたよ🎁',
-        url: '/',
-      })
+      const p = await notifyWin()
       pushed += p.sent || 0
     }
   }

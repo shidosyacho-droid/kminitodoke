@@ -4,7 +4,7 @@
 //   例（勝ち）: /api/admin?key=SECRET&match=gs1&jp=2&opp=1
 //   例（KO・相手も指定）: /api/admin?key=SECRET&match=r32&jp=1&opp=0&opponent=スペイン
 //   例（リセット）: /api/admin?key=SECRET&match=gs1&reset=1
-import { getResults, setResults, sendPushToAll } from './_lib.js'
+import { getResults, setResults, notifyWin } from './_lib.js'
 
 export default async function handler(req, res) {
   const { key, match, jp, opp, opponent, reset } = req.query
@@ -69,11 +69,7 @@ export default async function handler(req, res) {
     let push = null
     // 新たに「勝ち」になった時だけ通知（同じ勝ちの再送はしない）
     if (won && !wasWin) {
-      push = await sendPushToAll({
-        title: '⚽ 日本、勝利！',
-        body: '君に新しいプレゼントが届いたよ🎁',
-        url: '/',
-      })
+      push = await notifyWin()
     }
 
     res.status(200).json({
