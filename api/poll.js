@@ -1,6 +1,7 @@
 // /api/poll — cronから叩く。日本のWC試合について:
 //   ① 終了した試合のスコアを反映（勝ちは解禁＋通知）
-//   ② 24時間以内に迫った試合のリマインド通知（1試合1回）
+//   ② 決勝トーナメントの「次の相手・日程」を試合前に反映（国旗・日本語名つき）
+//   ③ 24時間以内に迫った試合のリマインド通知（1試合1回）
 // 手動で入れた結果（manual:true）は上書きしない。
 import {
   getResults,
@@ -13,7 +14,9 @@ import {
 
 const FD = 'https://api.football-data.org/v4'
 
-const OPP_TO_ID = { Netherlands: 'gs1', Tunisia: 'gs2', Sweden: 'gs3' }
+// グループの相手TLA → match id
+const OPP_TO_ID = { NED: 'gs1', TUN: 'gs2', SWE: 'gs3' }
+// 決勝Tのステージ → match id（実際のステージ名はKO開始時に debug で要確認）
 const STAGE_TO_ID = {
   LAST_32: 'r32',
   LAST_16: 'r16',
@@ -21,13 +24,70 @@ const STAGE_TO_ID = {
   SEMI_FINALS: 'sf',
   FINAL: 'final',
 }
-const OPP_JA = { Netherlands: 'オランダ', Tunisia: 'チュニジア', Sweden: 'スウェーデン' }
+
+// TLA → 日本語名・国旗（WC2026 出場48カ国）
+const COUNTRY = {
+  URY: { ja: 'ウルグアイ', flag: '🇺🇾' },
+  GER: { ja: 'ドイツ', flag: '🇩🇪' },
+  ESP: { ja: 'スペイン', flag: '🇪🇸' },
+  PAR: { ja: 'パラグアイ', flag: '🇵🇾' },
+  ARG: { ja: 'アルゼンチン', flag: '🇦🇷' },
+  GHA: { ja: 'ガーナ', flag: '🇬🇭' },
+  BRA: { ja: 'ブラジル', flag: '🇧🇷' },
+  POR: { ja: 'ポルトガル', flag: '🇵🇹' },
+  JPN: { ja: '日本', flag: '🇯🇵' },
+  MEX: { ja: 'メキシコ', flag: '🇲🇽' },
+  ENG: { ja: 'イングランド', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
+  USA: { ja: 'アメリカ', flag: '🇺🇸' },
+  KOR: { ja: '韓国', flag: '🇰🇷' },
+  FRA: { ja: 'フランス', flag: '🇫🇷' },
+  RSA: { ja: '南アフリカ', flag: '🇿🇦' },
+  ALG: { ja: 'アルジェリア', flag: '🇩🇿' },
+  AUS: { ja: 'オーストラリア', flag: '🇦🇺' },
+  NZL: { ja: 'ニュージーランド', flag: '🇳🇿' },
+  SUI: { ja: 'スイス', flag: '🇨🇭' },
+  ECU: { ja: 'エクアドル', flag: '🇪🇨' },
+  SWE: { ja: 'スウェーデン', flag: '🇸🇪' },
+  CZE: { ja: 'チェコ', flag: '🇨🇿' },
+  CRO: { ja: 'クロアチア', flag: '🇭🇷' },
+  KSA: { ja: 'サウジアラビア', flag: '🇸🇦' },
+  TUN: { ja: 'チュニジア', flag: '🇹🇳' },
+  TUR: { ja: 'トルコ', flag: '🇹🇷' },
+  SEN: { ja: 'セネガル', flag: '🇸🇳' },
+  BEL: { ja: 'ベルギー', flag: '🇧🇪' },
+  MAR: { ja: 'モロッコ', flag: '🇲🇦' },
+  AUT: { ja: 'オーストリア', flag: '🇦🇹' },
+  COL: { ja: 'コロンビア', flag: '🇨🇴' },
+  EGY: { ja: 'エジプト', flag: '🇪🇬' },
+  CAN: { ja: 'カナダ', flag: '🇨🇦' },
+  HAI: { ja: 'ハイチ', flag: '🇭🇹' },
+  IRN: { ja: 'イラン', flag: '🇮🇷' },
+  BIH: { ja: 'ボスニア', flag: '🇧🇦' },
+  PAN: { ja: 'パナマ', flag: '🇵🇦' },
+  CPV: { ja: 'カーボベルデ', flag: '🇨🇻' },
+  COD: { ja: 'コンゴ民主共和国', flag: '🇨🇩' },
+  CIV: { ja: 'コートジボワール', flag: '🇨🇮' },
+  QAT: { ja: 'カタール', flag: '🇶🇦' },
+  JOR: { ja: 'ヨルダン', flag: '🇯🇴' },
+  IRQ: { ja: 'イラク', flag: '🇮🇶' },
+  UZB: { ja: 'ウズベキスタン', flag: '🇺🇿' },
+  NED: { ja: 'オランダ', flag: '🇳🇱' },
+  NOR: { ja: 'ノルウェー', flag: '🇳🇴' },
+  SCO: { ja: 'スコットランド', flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿' },
+  CUW: { ja: 'キュラソー', flag: '🇨🇼' },
+}
+
+const isJapan = (t) => t?.name === 'Japan' || t?.tla === 'JPN'
 
 function matchToId(m) {
-  const japanHome = m.homeTeam?.name === 'Japan'
-  const opp = japanHome ? m.awayTeam?.name : m.homeTeam?.name
-  if (m.stage === 'GROUP_STAGE') return OPP_TO_ID[opp] || null
+  const oppTla = isJapan(m.homeTeam) ? m.awayTeam?.tla : m.homeTeam?.tla
+  if (m.stage === 'GROUP_STAGE') return OPP_TO_ID[oppTla] || null
   return STAGE_TO_ID[m.stage] ?? null
+}
+
+function oppInfo(m) {
+  const t = isJapan(m.homeTeam) ? m.awayTeam : m.homeTeam
+  return COUNTRY[t?.tla] || { ja: t?.name || '相手', flag: '🏳️' }
 }
 
 // 日本時間で「6月15日(月) 5:00」形式に
@@ -60,9 +120,7 @@ async function fetchJapanMatches() {
   } catch {
     return { error: 'parse error' }
   }
-  const japan = (data.matches || []).filter(
-    (m) => m.homeTeam?.name === 'Japan' || m.awayTeam?.name === 'Japan',
-  )
+  const japan = (data.matches || []).filter((m) => isJapan(m.homeTeam) || isJapan(m.awayTeam))
   return { japan }
 }
 
@@ -73,7 +131,7 @@ export default async function handler(req, res) {
     return
   }
 
-  // 出場国リスト（対応表づくり用の検証）
+  // 出場国リスト（対応表づくり用）
   if (req.query.teams) {
     const token = process.env.FOOTBALL_API_TOKEN
     const r = await fetch(`${FD}/competitions/WC/teams`, {
@@ -102,16 +160,16 @@ export default async function handler(req, res) {
         jst: formatJST(m.utcDate),
         status: m.status,
         stage: m.stage,
-        home: m.homeTeam?.name,
-        away: m.awayTeam?.name,
+        homeTla: m.homeTeam?.tla,
+        awayTla: m.awayTeam?.tla,
         score: m.score?.fullTime,
         mapped: matchToId(m),
+        opp: oppInfo(m),
       })),
     })
     return
   }
 
-  // テスト：直近の未終了の試合でリマインド文面を1通送る（24h/フラグ無視）
   if (remindTest) {
     const next = data.japan
       .filter((m) => m.status !== 'FINISHED')
@@ -126,36 +184,47 @@ export default async function handler(req, res) {
   }
 
   const now = Date.now()
-
-  // ① スコア反映
   const results = await getResults()
   const updated = []
   let pushed = 0
+  let changed = false
+
   for (const m of data.japan) {
-    if (m.status !== 'FINISHED') continue
     const id = matchToId(m)
     if (!id) continue
     if (results[id]?.manual) continue
-    const ft = m.score?.fullTime
-    if (!ft || ft.home == null || ft.away == null) continue
-    const japanHome = m.homeTeam?.name === 'Japan'
-    const jp = japanHome ? ft.home : ft.away
-    const opp = japanHome ? ft.away : ft.home
-    const oppEn = japanHome ? m.awayTeam?.name : m.homeTeam?.name
-    const opponent = OPP_JA[oppEn] || oppEn
-    const prev = results[id]
-    if (prev && prev.jp === jp && prev.opp === opp) continue
-    const wasWin = prev && prev.jp > prev.opp
-    results[id] = { jp, opp, opponent }
-    updated.push({ id, score: `${jp}-${opp}` })
-    if (jp > opp && !wasWin) {
-      const p = await notifyWin()
-      pushed += p.sent || 0
+    const info = oppInfo(m)
+
+    if (m.status === 'FINISHED') {
+      // ① スコア反映
+      const ft = m.score?.fullTime
+      if (!ft || ft.home == null || ft.away == null) continue
+      const jp = isJapan(m.homeTeam) ? ft.home : ft.away
+      const opp = isJapan(m.homeTeam) ? ft.away : ft.home
+      const prev = results[id]
+      if (prev && prev.jp === jp && prev.opp === opp) continue
+      const wasWin = prev && prev.jp > prev.opp
+      results[id] = { jp, opp, opponent: info.ja, flag: info.flag }
+      changed = true
+      updated.push({ id, score: `${jp}-${opp}` })
+      if (jp > opp && !wasWin) {
+        const p = await notifyWin()
+        pushed += p.sent || 0
+      }
+    } else if (id !== 'gs1' && id !== 'gs2' && id !== 'gs3') {
+      // ② 決勝Tの相手・日程を試合前に反映（グループは元から入っているので対象外）
+      const prev = results[id]
+      if (prev && prev.jp != null) continue // 既に結果あり
+      const kickoff = formatJST(m.utcDate)
+      if (prev && prev.opponent === info.ja && prev.kickoff === kickoff) continue
+      results[id] = { opponent: info.ja, flag: info.flag, kickoff }
+      changed = true
+      updated.push({ id, upcoming: `${info.ja} ${kickoff}` })
     }
   }
-  if (updated.length) await setResults(results)
+  if (changed) await setResults(results)
 
-  // ② 24時間前リマインド
+  // ③ 24時間前リマインド
   const reminded = await getReminded()
   const reminders = []
   let remindedChanged = false

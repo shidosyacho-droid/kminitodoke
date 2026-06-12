@@ -40,21 +40,31 @@ function App() {
       .then((data) => {
         const results: Record<
           string,
-          { jp: number; opp: number; opponent?: string }
+          {
+            jp?: number
+            opp?: number
+            opponent?: string
+            flag?: string
+            kickoff?: string
+          }
         > = data?.results ?? {}
         if (!results || Object.keys(results).length === 0) return
         setMatches((prev) =>
           prev.map((m) => {
             const r = results[m.id]
             if (!r) return m
-            const opponent = r.opponent ?? m.opponent
-            const won = r.jp > r.opp
-            return {
-              ...m,
-              opponent,
-              state: (won ? 'delivered' : 'sealed') as DeliveryState,
-              result: `日本 ${r.jp}-${r.opp} ${opponent}`,
+            const merged: MatchMessage = { ...m }
+            // 決勝Tの相手・国旗・日程を試合前でも反映
+            if (r.opponent) merged.opponent = r.opponent
+            if (r.flag) merged.flag = r.flag
+            if (r.kickoff) merged.kickoff = r.kickoff
+            // スコアが入っていれば勝敗確定（勝ち=解禁／それ以外=封印）
+            if (r.jp != null && r.opp != null) {
+              const won = r.jp > r.opp
+              merged.state = (won ? 'delivered' : 'sealed') as DeliveryState
+              merged.result = `日本 ${r.jp}-${r.opp} ${merged.opponent}`
             }
+            return merged
           }),
         )
       })
