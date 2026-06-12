@@ -95,3 +95,27 @@ export async function notifyWin() {
     url: '/',
   })
 }
+
+/** 試合24時間前のリマインド通知（文面はここで一元管理） */
+export async function notifyMatchSoon(whenText) {
+  return sendPushToAll({
+    title: '⚽ もうすぐ日本代表の試合です',
+    body: `${whenText} に代表戦があります。応援しましょう！`,
+    url: '/',
+  })
+}
+
+/** リマインド済みフラグ（{ apiMatchId: true }）。同じ試合に何度も送らないため。 */
+export async function getReminded() {
+  const raw = await kv(['GET', 'reminded'])
+  if (!raw) return {}
+  try {
+    return typeof raw === 'string' ? JSON.parse(raw) : raw
+  } catch {
+    return {}
+  }
+}
+
+export async function setReminded(obj) {
+  await kv(['SET', 'reminded', JSON.stringify(obj)])
+}

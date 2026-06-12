@@ -1,11 +1,18 @@
-// /api/poll — 自動取得（cronから叩く）。football-data.org から日本のWC試合の
-// スコアを取得し、終了した試合を KV に反映（勝ちは解禁＋通知）。
-// 手動で入れた結果（manual:true）は上書きしない＝自動が間違えた時の補正を守る。
-import { getResults, setResults, notifyWin } from './_lib.js'
+// /api/poll — cronから叩く。日本のWC試合について:
+//   ① 終了した試合のスコアを反映（勝ちは解禁＋通知）
+//   ② 24時間以内に迫った試合のリマインド通知（1試合1回）
+// 手動で入れた結果（manual:true）は上書きしない。
+import {
+  getResults,
+  setResults,
+  getReminded,
+  setReminded,
+  notifyWin,
+  notifyMatchSoon,
+} from './_lib.js'
 
 const FD = 'https://api.football-data.org/v4'
 
-// グループは相手名で、決勝Tはステージ名で、自分のmatch idに対応づける
 const OPP_TO_ID = { Netherlands: 'gs1', Tunisia: 'gs2', Sweden: 'gs3' }
 const STAGE_TO_ID = {
   LAST_32: 'r32',
@@ -14,7 +21,6 @@ const STAGE_TO_ID = {
   SEMI_FINALS: 'sf',
   FINAL: 'final',
 }
-// 相手名の日本語表記（グループは固定。KOは分かるものだけ）
 const OPP_JA = { Netherlands: 'オランダ', Tunisia: 'チュニジア', Sweden: 'スウェーデン' }
 
 function matchToId(m) {
@@ -22,6 +28,22 @@ function matchToId(m) {
   const opp = japanHome ? m.awayTeam?.name : m.homeTeam?.name
   if (m.stage === 'GROUP_STAGE') return OPP_TO_ID[opp] || null
   return STAGE_TO_ID[m.stage] ?? null
+}
+
+// 日本時間で「6月15日(月) 5:00」形式に
+function formatJST(utcDate) {
+  const parts = new Intl.DateTimeFormat('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    month: 'numeric',
+    day: 'numeric',
+    weekday: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date(utcDate))
+  const p = {}
+  for (const x of parts) p[x.type] = x.value
+  return `${p.month}月${p.day}日(${p.weekday}) ${p.hour}:${p.minute}`
 }
 
 async function fetchJapanMatches() {
@@ -45,7 +67,7 @@ async function fetchJapanMatches() {
 }
 
 export default async function handler(req, res) {
-  const { key, debug } = req.query
+  const { key, debug, remindTest } = req.query
   if (!process.env.ADMIN_SECRET || key !== process.env.ADMIN_SECRET) {
     res.status(401).json({ error: 'unauthorized' })
     return
@@ -62,6 +84,7 @@ export default async function handler(req, res) {
     res.status(200).json({
       japan: data.japan.map((m) => ({
         utcDate: m.utcDate,
+        jst: formatJST(m.utcDate),
         status: m.status,
         stage: m.stage,
         home: m.homeTeam?.name,
@@ -73,17 +96,31 @@ export default async function handler(req, res) {
     return
   }
 
+  // テスト：直近の未終了の試合でリマインド文面を1通送る（24h/フラグ無視）
+  if (remindTest) {
+    const next = data.japan
+      .filter((m) => m.status !== 'FINISHED')
+      .sort((a, b) => new Date(a.utcDate) - new Date(b.utcDate))[0]
+    if (!next) {
+      res.status(200).json({ error: 'upcoming match not found' })
+      return
+    }
+    const p = await notifyMatchSoon(formatJST(next.utcDate))
+    res.status(200).json({ test: true, when: formatJST(next.utcDate), push: p })
+    return
+  }
+
+  const now = Date.now()
+
+  // ① スコア反映
   const results = await getResults()
   const updated = []
   let pushed = 0
-
   for (const m of data.japan) {
     if (m.status !== 'FINISHED') continue
     const id = matchToId(m)
     if (!id) continue
-    // 手動で入れた結果は尊重（上書きしない）
     if (results[id]?.manual) continue
-
     const ft = m.score?.fullTime
     if (!ft || ft.home == null || ft.away == null) continue
     const japanHome = m.homeTeam?.name === 'Japan'
@@ -91,20 +128,35 @@ export default async function handler(req, res) {
     const opp = japanHome ? ft.away : ft.home
     const oppEn = japanHome ? m.awayTeam?.name : m.homeTeam?.name
     const opponent = OPP_JA[oppEn] || oppEn
-
     const prev = results[id]
-    if (prev && prev.jp === jp && prev.opp === opp) continue // 変化なし
-
+    if (prev && prev.jp === jp && prev.opp === opp) continue
     const wasWin = prev && prev.jp > prev.opp
     results[id] = { jp, opp, opponent }
     updated.push({ id, score: `${jp}-${opp}` })
-
     if (jp > opp && !wasWin) {
       const p = await notifyWin()
       pushed += p.sent || 0
     }
   }
-
   if (updated.length) await setResults(results)
-  res.status(200).json({ ok: true, updated, pushed })
+
+  // ② 24時間前リマインド
+  const reminded = await getReminded()
+  const reminders = []
+  let remindedChanged = false
+  for (const m of data.japan) {
+    if (m.status === 'FINISHED' || m.status === 'IN_PLAY' || m.status === 'PAUSED') continue
+    const flag = String(m.id)
+    if (reminded[flag]) continue
+    const hoursUntil = (new Date(m.utcDate).getTime() - now) / 3600000
+    if (hoursUntil > 0 && hoursUntil <= 24) {
+      const p = await notifyMatchSoon(formatJST(m.utcDate))
+      reminded[flag] = true
+      remindedChanged = true
+      reminders.push({ when: formatJST(m.utcDate), sent: p.sent })
+    }
+  }
+  if (remindedChanged) await setReminded(reminded)
+
+  res.status(200).json({ ok: true, updated, pushed, reminders })
 }
