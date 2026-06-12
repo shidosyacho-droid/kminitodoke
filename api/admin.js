@@ -13,6 +13,24 @@ export default async function handler(req, res) {
     res.status(401).json({ error: 'unauthorized' })
     return
   }
+
+  // 環境変数の「有無」だけ点検（値は返さない）。?env=1
+  if (req.query.env) {
+    const names = [
+      'ADMIN_SECRET',
+      'KV_REST_API_URL',
+      'KV_REST_API_TOKEN',
+      'VAPID_PUBLIC_KEY',
+      'VAPID_PRIVATE_KEY',
+      'VAPID_SUBJECT',
+      'FOOTBALL_API_TOKEN',
+    ]
+    const present = {}
+    for (const n of names) present[n] = !!process.env[n]
+    res.status(200).json({ env: present })
+    return
+  }
+
   if (!match) {
     res.status(400).json({ error: 'match を指定してください' })
     return
