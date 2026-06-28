@@ -83,18 +83,42 @@ function App() {
           /* APIが無い/失敗時はアプリ内の初期状態のまま */
         })
     }
+    // 新しいデプロイが出ていたら自動で最新を読み込む（手動リロード不要にする）
+    const currentBundle = () => {
+      const s = document.querySelector(
+        'script[type="module"][src*="/assets/index-"]',
+      )
+      return s ? s.getAttribute('src') : null
+    }
+    const checkForUpdate = () => {
+      const cur = currentBundle()
+      if (!cur) return // 開発時など本番ビルド以外は何もしない
+      fetch('/', { cache: 'no-store' })
+        .then((r) => (r.ok ? r.text() : ''))
+        .then((html) => {
+          const m = html.match(/\/assets\/index-[^"]+\.js/)
+          const latest = m ? m[0] : null
+          // バンドルのハッシュが変わっていたら＝新バージョン → 自動で読み込み直す
+          if (latest && !cur.includes(latest)) location.reload()
+        })
+        .catch(() => {})
+    }
     // 起動時に取得
     syncState()
-    // アプリが前面に戻った時／フォーカス時に取り直す
-    // （彼女が通知をタップして開きっぱなしのアプリに戻った時も、最新の勝敗・解禁を必ず反映）
+    // アプリが前面に戻った時／フォーカス時：データ再取得＋新バージョン確認
+    // （彼女が通知をタップして開きっぱなしのアプリに戻った時も、最新を必ず反映）
+    const onForeground = () => {
+      syncState()
+      checkForUpdate()
+    }
     const onVisible = () => {
-      if (document.visibilityState === 'visible') syncState()
+      if (document.visibilityState === 'visible') onForeground()
     }
     document.addEventListener('visibilitychange', onVisible)
-    window.addEventListener('focus', syncState)
+    window.addEventListener('focus', onForeground)
     return () => {
       document.removeEventListener('visibilitychange', onVisible)
-      window.removeEventListener('focus', syncState)
+      window.removeEventListener('focus', onForeground)
     }
   }, [])
 
