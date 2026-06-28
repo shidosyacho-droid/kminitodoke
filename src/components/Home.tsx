@@ -38,7 +38,13 @@ export default function Home({
     const inner = (
       <>
         <div className="srow__icon">
-          {fs ? <Sprite name={fs} size={26} /> : <span className="srow__q">？</span>}
+          {fs ? (
+            <Sprite name={fs} size={26} />
+          ) : m.opponent !== '未定' ? (
+            <span style={{ fontSize: 24 }}>{m.flag}</span>
+          ) : (
+            <span className="srow__q">？</span>
+          )}
         </div>
         <div className="srow__main">
           <div className="srow__top">
@@ -111,6 +117,8 @@ export default function Home({
             <div className="next-hero__icon">
               {flagSprite(nextMatch.opponent) ? (
                 <Sprite name={flagSprite(nextMatch.opponent)!} size={40} />
+              ) : nextMatch.opponent !== '未定' ? (
+                <span style={{ fontSize: 38 }}>{nextMatch.flag}</span>
               ) : (
                 <span className="srow__q big">？</span>
               )}

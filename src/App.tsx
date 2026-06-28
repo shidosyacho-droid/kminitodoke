@@ -51,6 +51,10 @@ function App() {
           }
         > = data?.results ?? {}
         if (!results || Object.keys(results).length === 0) return
+        // 決勝T進出済みか（グループ突破記念で、グループステージの封印を解禁する判定）
+        const clearedGroup = ['r32', 'r16', 'qf', 'sf', 'final'].some(
+          (k) => results[k],
+        )
         setMatches((prev) =>
           prev.map((m) => {
             const r = results[m.id]
@@ -63,7 +67,10 @@ function App() {
             // スコアが入っていれば勝敗確定（勝敗は won＝PK込みの正しい判定）
             if (r.jp != null && r.opp != null) {
               const won = r.won ?? r.jp > r.opp
-              merged.state = (won ? 'delivered' : 'sealed') as DeliveryState
+              let st: DeliveryState = won ? 'delivered' : 'sealed'
+              // グループ突破記念：決勝T進出後はグループの封印を解禁
+              if (!won && m.stage === 'group' && clearedGroup) st = 'revealed'
+              merged.state = st
               const pk = r.pk ? `（PK ${r.pk.jp}-${r.pk.opp}）` : ''
               merged.result = `日本 ${r.jp}-${r.opp}${pk} ${merged.opponent}`
             }
