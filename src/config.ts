@@ -5,7 +5,8 @@ export const RECIPIENT = 'ひなた様' // 受け取り手（彼女）の表示�
 
 // ワールドカップ終了日時。これを過ぎると、未解禁のプレゼント（封印・未開催）が
 // 自動で全て解禁される（＝最後に全部ひなた様へ届く）。
-export const WC_END_DATE = new Date('2026-07-20T00:00:00+09:00')
+// 決勝は7/19(アメリカ開催)＝JSTでは7/20早朝に終了。時差を考慮し、確実に決勝後となる7/21に設定。
+export const WC_END_DATE = new Date('2026-07-21T00:00:00+09:00')
 
 // Web Push の公開鍵（公開情報。秘密鍵はVercelの環境変数のみに置く）
 export const VAPID_PUBLIC_KEY =
