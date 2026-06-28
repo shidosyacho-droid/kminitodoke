@@ -35,52 +35,67 @@ function App() {
   // 形: { gs1: { jp, opp, opponent? } } → 勝ち(jp>opp)=配信 / それ以外=封印、表示は「日本 2-1 オランダ」
   useEffect(() => {
     if (IS_PREVIEW) return
-    fetch('/api/state')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        const results: Record<
-          string,
-          {
-            jp?: number
-            opp?: number
-            won?: boolean
-            pk?: { jp: number; opp: number }
-            opponent?: string
-            flag?: string
-            kickoff?: string
-          }
-        > = data?.results ?? {}
-        if (!results || Object.keys(results).length === 0) return
-        // 決勝T進出済みか（グループ突破記念で、グループステージの封印を解禁する判定）
-        const clearedGroup = ['r32', 'r16', 'qf', 'sf', 'final'].some(
-          (k) => results[k],
-        )
-        setMatches((prev) =>
-          prev.map((m) => {
-            const r = results[m.id]
-            if (!r) return m
-            const merged: MatchMessage = { ...m }
-            // 決勝Tの相手・国旗・日程を試合前でも反映
-            if (r.opponent) merged.opponent = r.opponent
-            if (r.flag) merged.flag = r.flag
-            if (r.kickoff) merged.kickoff = r.kickoff
-            // スコアが入っていれば勝敗確定（勝敗は won＝PK込みの正しい判定）
-            if (r.jp != null && r.opp != null) {
-              const won = r.won ?? r.jp > r.opp
-              let st: DeliveryState = won ? 'delivered' : 'sealed'
-              // グループ突破記念：決勝T進出後はグループの封印を解禁
-              if (!won && m.stage === 'group' && clearedGroup) st = 'revealed'
-              merged.state = st
-              const pk = r.pk ? `（PK ${r.pk.jp}-${r.pk.opp}）` : ''
-              merged.result = `日本 ${r.jp}-${r.opp}${pk} ${merged.opponent}`
+    const syncState = () => {
+      fetch('/api/state')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          const results: Record<
+            string,
+            {
+              jp?: number
+              opp?: number
+              won?: boolean
+              pk?: { jp: number; opp: number }
+              opponent?: string
+              flag?: string
+              kickoff?: string
             }
-            return merged
-          }),
-        )
-      })
-      .catch(() => {
-        /* APIが無い/失敗時はアプリ内の初期状態のまま */
-      })
+          > = data?.results ?? {}
+          if (!results || Object.keys(results).length === 0) return
+          // 決勝T進出済みか（グループ突破記念で、グループステージの封印を解禁する判定）
+          const clearedGroup = ['r32', 'r16', 'qf', 'sf', 'final'].some(
+            (k) => results[k],
+          )
+          setMatches((prev) =>
+            prev.map((m) => {
+              const r = results[m.id]
+              if (!r) return m
+              const merged: MatchMessage = { ...m }
+              // 決勝Tの相手・国旗・日程を試合前でも反映
+              if (r.opponent) merged.opponent = r.opponent
+              if (r.flag) merged.flag = r.flag
+              if (r.kickoff) merged.kickoff = r.kickoff
+              // スコアが入っていれば勝敗確定（勝敗は won＝PK込みの正しい判定）
+              if (r.jp != null && r.opp != null) {
+                const won = r.won ?? r.jp > r.opp
+                let st: DeliveryState = won ? 'delivered' : 'sealed'
+                // グループ突破記念：決勝T進出後はグループの封印を解禁
+                if (!won && m.stage === 'group' && clearedGroup) st = 'revealed'
+                merged.state = st
+                const pk = r.pk ? `（PK ${r.pk.jp}-${r.pk.opp}）` : ''
+                merged.result = `日本 ${r.jp}-${r.opp}${pk} ${merged.opponent}`
+              }
+              return merged
+            }),
+          )
+        })
+        .catch(() => {
+          /* APIが無い/失敗時はアプリ内の初期状態のまま */
+        })
+    }
+    // 起動時に取得
+    syncState()
+    // アプリが前面に戻った時／フォーカス時に取り直す
+    // （彼女が通知をタップして開きっぱなしのアプリに戻った時も、最新の勝敗・解禁を必ず反映）
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') syncState()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', syncState)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', syncState)
+    }
   }, [])
 
   // 端末に保存したリアクション（ハート/スタンプ）を復元
