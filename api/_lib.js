@@ -102,7 +102,7 @@ export const WC_END_TS = Date.parse('2026-07-21T00:00:00+09:00')
 /** 大会終了→全プレゼント解禁の通知（文面はここで一元管理） */
 export async function notifyTournamentEnd() {
   return sendPushToAll({
-    title: 'ワールドカップが終了しました',
+    title: 'ひなた様、ワールドカップが終了しました',
     body: '次回のワールドカップも楽しみましょう。全てのプレゼントが解禁しました。確認しましょう。',
     url: '/',
   })
