@@ -10,6 +10,10 @@ import {
   setReminded,
   notifyWin,
   notifyMatchSoon,
+  notifyTournamentEnd,
+  getFlags,
+  setFlags,
+  WC_END_TS,
 } from './_lib.js'
 
 const FD = 'https://api.football-data.org/v4'
@@ -128,6 +132,13 @@ export default async function handler(req, res) {
   const { key, debug, remindTest } = req.query
   if (!process.env.ADMIN_SECRET || key !== process.env.ADMIN_SECRET) {
     res.status(401).json({ error: 'unauthorized' })
+    return
+  }
+
+  // 大会終了通知のテスト送信（フラグは立てない＝本番の「一度だけ」送信は邪魔しない）
+  if (req.query.endTest) {
+    const p = await notifyTournamentEnd()
+    res.status(200).json({ test: 'tournamentEnd', push: p })
     return
   }
 
@@ -255,5 +266,15 @@ export default async function handler(req, res) {
   }
   if (remindedChanged) await setReminded(reminded)
 
-  res.status(200).json({ ok: true, updated, pushed, reminders })
+  // ④ 大会終了（=全プレゼント解禁）の通知。終了時刻を過ぎたら一度だけ送る。
+  let endNotified = null
+  const flags = await getFlags()
+  if (now >= WC_END_TS && !flags.endNotified) {
+    const p = await notifyTournamentEnd()
+    flags.endNotified = true
+    await setFlags(flags)
+    endNotified = { sent: p.sent }
+  }
+
+  res.status(200).json({ ok: true, updated, pushed, reminders, endNotified })
 }

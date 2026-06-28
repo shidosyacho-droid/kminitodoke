@@ -96,6 +96,18 @@ export async function notifyWin() {
   })
 }
 
+/** 大会終了（=全プレゼント解禁）の日時。client の config.ts(WC_END_DATE)と同じ瞬間にすること。 */
+export const WC_END_TS = Date.parse('2026-07-21T00:00:00+09:00')
+
+/** 大会終了→全プレゼント解禁の通知（文面はここで一元管理） */
+export async function notifyTournamentEnd() {
+  return sendPushToAll({
+    title: 'ワールドカップが終了しました',
+    body: '次回のワールドカップも楽しみましょう。全てのプレゼントが解禁しました。確認しましょう。',
+    url: '/',
+  })
+}
+
 /** 試合24時間前のリマインド通知（文面はここで一元管理） */
 export async function notifyMatchSoon(whenText) {
   return sendPushToAll({
@@ -118,4 +130,19 @@ export async function getReminded() {
 
 export async function setReminded(obj) {
   await kv(['SET', 'reminded', JSON.stringify(obj)])
+}
+
+/** 汎用フラグ（{ endNotified: true } など）。「一度だけ送る」通知の重複防止に使う。 */
+export async function getFlags() {
+  const raw = await kv(['GET', 'flags'])
+  if (!raw) return {}
+  try {
+    return typeof raw === 'string' ? JSON.parse(raw) : raw
+  } catch {
+    return {}
+  }
+}
+
+export async function setFlags(obj) {
+  await kv(['SET', 'flags', JSON.stringify(obj)])
 }

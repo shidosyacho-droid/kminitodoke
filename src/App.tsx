@@ -110,6 +110,8 @@ function App() {
     const onForeground = () => {
       syncState()
       checkForUpdate()
+      // 大会終了日時を過ぎていたら封印を解禁（開きっぱなしでも開いた時に反映）
+      if (Date.now() >= WC_END_DATE.getTime()) setRevealSealed(true)
     }
     const onVisible = () => {
       if (document.visibilityState === 'visible') onForeground()
