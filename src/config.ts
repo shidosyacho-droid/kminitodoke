@@ -11,14 +11,8 @@ export const WC_END_DATE = new Date('2026-07-21T00:00:00+09:00')
 // 記念モード：ON にすると、大会の途中でも「全プレゼントを即解禁」し、記念メッセージを表示する。
 // （表示だけを解禁する＝通知は送らない。文言は下の2つで自由に編集可）
 export const ANNIVERSARY = true
-export const ANNIVERSARY_TITLE = '🎉 1年記念、おめでとう 🎉'
-export const ANNIVERSARY_LINES = [
-  'ひなた様へ。出会って1年、いつもありがとう。',
-  '日本代表は負けちゃったけど……勝った日も、勝てなかった日も、',
-  'ぜんぶ君に届けたかった気持ちです。',
-  '記念に、すべてのプレゼントを解禁しました。ゆっくり見てね。',
-  '— 志道様より',
-]
+export const ANNIVERSARY_TITLE = '🎉 1年記念おめでとう 🎉'
+export const ANNIVERSARY_LINES: string[] = []
 
 // Web Push の公開鍵（公開情報。秘密鍵はVercelの環境変数のみに置く）
 export const VAPID_PUBLIC_KEY =

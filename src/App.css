@@ -608,6 +608,10 @@
   color: var(--rose);
   margin-bottom: 10px;
 }
+/* 本文が無いとき（タイトルのみ）は下余白を消す */
+.anniv-banner__title:last-child {
+  margin-bottom: 0;
+}
 .anniv-banner__body {
   font-size: 12.5px;
   line-height: 2;
