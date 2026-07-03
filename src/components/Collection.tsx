@@ -1,8 +1,9 @@
 import type { MatchMessage } from '../types'
-import { APP_NAME } from '../config'
+import { APP_NAME, ANNIVERSARY } from '../config'
 import { effectiveState, isOpenable } from '../lib/state'
 import { playClick } from '../lib/sfx'
 import BingoCell from './BingoCell'
+import AnniversaryBanner from './AnniversaryBanner'
 import { Sprite, PitchLines } from './Sprite'
 
 type Props = {
@@ -53,11 +54,16 @@ export default function Collection({
 
       <div className="collection-heading">★ コレクション一覧 ★</div>
 
-      {revealSealed && sealedCount > 0 && (
-        <div className="finale-banner">
-          🎉 全てのプレゼントが解禁されました。<br />
-          勝てなかった日の <b>「本当は届けたかったメッセージ」</b>の封印が解けました。
-        </div>
+      {ANNIVERSARY ? (
+        <AnniversaryBanner />
+      ) : (
+        revealSealed &&
+        sealedCount > 0 && (
+          <div className="finale-banner">
+            🎉 全てのプレゼントが解禁されました。<br />
+            勝てなかった日の <b>「本当は届けたかったメッセージ」</b>の封印が解けました。
+          </div>
+        )
       )}
 
       <div className="pitch-board">

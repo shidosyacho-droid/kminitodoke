@@ -99,6 +99,10 @@ export async function notifyWin() {
 /** 大会終了（=全プレゼント解禁）の日時。client の config.ts(WC_END_DATE)と同じ瞬間にすること。 */
 export const WC_END_TS = Date.parse('2026-07-21T00:00:00+09:00')
 
+// 記念モードで全プレゼントを先に解禁したので、大会終了(7/21)の自動通知は送らない。
+// （後日いきなり通知が飛ぶのを防ぐ。終了通知を復活させたい時は false に戻す）
+export const SUPPRESS_END_NOTIFY = true
+
 /** 大会終了→全プレゼント解禁の通知（文面はここで一元管理） */
 export async function notifyTournamentEnd() {
   return sendPushToAll({

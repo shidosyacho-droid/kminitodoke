@@ -590,6 +590,32 @@
   color: var(--rose);
 }
 
+/* 1年記念バナー */
+.anniv-banner {
+  text-align: center;
+  color: var(--cream);
+  background: var(--win-bg);
+  border: 3px solid var(--rose);
+  border-radius: 4px;
+  padding: 16px 14px;
+  margin: 12px 0 16px;
+  box-shadow: 5px 5px 0 0 rgba(0, 0, 0, 0.35);
+}
+.anniv-banner__title {
+  font-family: var(--font-pixel);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--rose);
+  margin-bottom: 10px;
+}
+.anniv-banner__body {
+  font-size: 12.5px;
+  line-height: 2;
+}
+.anniv-banner__line {
+  margin: 3px 0;
+}
+
 /* ピッチ（芝の盤面） */
 .pitch-board {
   position: relative;

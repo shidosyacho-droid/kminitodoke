@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import './App.css'
 import type { DeliveryState, MatchMessage, Reaction } from './types'
 import { MATCHES } from './data/matches'
-import { WC_END_DATE } from './config'
+import { WC_END_DATE, ANNIVERSARY } from './config'
 import TitleScreen from './components/TitleScreen'
 import LoadingScreen from './components/LoadingScreen'
 import Home from './components/Home'
@@ -28,7 +28,7 @@ function App() {
   // ワールドカップ終了日時を過ぎていたら、最初から全プレゼントを自動解禁。
   // （DEMOボタンで手動トグルもできる＝終了後の状態をプレビュー用）
   const [revealSealed, setRevealSealed] = useState(
-    () => Date.now() >= WC_END_DATE.getTime(),
+    () => ANNIVERSARY || Date.now() >= WC_END_DATE.getTime(),
   )
 
   // サーバー(KV)の最新スコアを取得して反映（本人プレビュー時は固定なのでスキップ）
@@ -110,8 +110,8 @@ function App() {
     const onForeground = () => {
       syncState()
       checkForUpdate()
-      // 大会終了日時を過ぎていたら封印を解禁（開きっぱなしでも開いた時に反映）
-      if (Date.now() >= WC_END_DATE.getTime()) setRevealSealed(true)
+      // 記念モード、または大会終了日時を過ぎていたら封印を解禁（開きっぱなしでも開いた時に反映）
+      if (ANNIVERSARY || Date.now() >= WC_END_DATE.getTime()) setRevealSealed(true)
     }
     const onVisible = () => {
       if (document.visibilityState === 'visible') onForeground()

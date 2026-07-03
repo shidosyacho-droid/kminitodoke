@@ -1,10 +1,11 @@
 import type { MatchMessage } from '../types'
 import { STAGE_META } from '../types'
-import { APP_NAME, RECIPIENT } from '../config'
+import { APP_NAME, RECIPIENT, ANNIVERSARY } from '../config'
 import { effectiveState, isOpenable } from '../lib/state'
 import { playClick } from '../lib/sfx'
 import { Sprite, flagSprite } from './Sprite'
 import NotifyButton from './NotifyButton'
+import AnniversaryBanner from './AnniversaryBanner'
 
 type Props = {
   matches: MatchMessage[]
@@ -102,6 +103,8 @@ export default function Home({
         <div className="hud__title">{APP_NAME}</div>
         <div className="hud__score">★{openableCount}/8</div>
       </div>
+
+      {ANNIVERSARY && <AnniversaryBanner />}
 
       <p className="home-greet">
         {RECIPIENT}へ。<br />

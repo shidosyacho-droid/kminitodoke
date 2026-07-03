@@ -14,6 +14,7 @@ import {
   getFlags,
   setFlags,
   WC_END_TS,
+  SUPPRESS_END_NOTIFY,
 } from './_lib.js'
 
 const FD = 'https://api.football-data.org/v4'
@@ -267,9 +268,10 @@ export default async function handler(req, res) {
   if (remindedChanged) await setReminded(reminded)
 
   // ④ 大会終了（=全プレゼント解禁）の通知。終了時刻を過ぎたら一度だけ送る。
+  // ただし記念モードで先に全解禁した場合(SUPPRESS_END_NOTIFY)は送らない。
   let endNotified = null
   const flags = await getFlags()
-  if (now >= WC_END_TS && !flags.endNotified) {
+  if (!SUPPRESS_END_NOTIFY && now >= WC_END_TS && !flags.endNotified) {
     const p = await notifyTournamentEnd()
     flags.endNotified = true
     await setFlags(flags)
